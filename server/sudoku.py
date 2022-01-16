@@ -1,14 +1,11 @@
 from collections import namedtuple
-from enum import Enum, auto
 from typing import List, Union
+
+from constants import ChangeType
+from data import grids
 
 
 Change = namedtuple('Change', ['type', 'data', 'removed'])
-
-
-class ChangeType(Enum):
-    DEFINE = auto()
-    CELL_SINGLETON = auto()
 
 
 class Sudoku:
@@ -38,14 +35,48 @@ class Sudoku:
                 if self._cell[r][c] is None:
                     s += "  "
                 else:
-                    s += " "
-                    s += str(self._cell[r][c])
+                    s += f" {str(self._cell[r][c])}"
                 if c % Sudoku.BLOCK == 2:
                     s += " |"
             s += "\n"
             if r % Sudoku.BLOCK == 2:
                 s += separator
         return s
+
+    def print_options(self):
+        simple_separator = '++-------+-------+-------++-------+-------+-------++-------+-------+-------++\n'
+        double_separator = '++=======+=======+=======++=======+=======+=======++=======+=======+=======++\n'
+        s = double_separator
+        for r in range(Sudoku.SIZE):
+            for sub_r in range(Sudoku.BLOCK):
+                s += '||'
+                for c in range(Sudoku.SIZE):
+                    value = self._cell[r][c]
+                    options = self._options[r][c]
+                    if value is not None:
+                        if sub_r == 0:
+                            s += ' \\   /'
+                        elif sub_r == 1:
+                            s += f'   {str(value)}  '
+                        else:
+                            s += ' /   \\'
+                    else:
+                        pos1 = str(sub_r * 3 + 1) if (sub_r * 3 + 1) in options else ' '
+                        pos2 = str(sub_r * 3 + 2) if (sub_r * 3 + 2) in options else ' '
+                        pos3 = str(sub_r * 3 + 3) if (sub_r * 3 + 3) in options else ' '
+                        s += f' {pos1} {pos2} {pos3}'
+
+                    s += " |"
+                    if c % Sudoku.BLOCK == 2:
+                        s += "|"
+                s += '\n'
+            if r % Sudoku.BLOCK == 2:
+                s += double_separator
+            else:
+                s += simple_separator
+        print(s)
+
+
 
     @staticmethod
     def _cells_in_square(row, column):
@@ -55,6 +86,16 @@ class Sudoku:
             for x in range(top_row, top_row + Sudoku.BLOCK)
             for y in range(top_column, top_column + Sudoku.BLOCK)
         ]
+
+    def load_grid(self, index):
+        g = grids[index]['grid']
+        pos = 0
+        for r in range(Sudoku.SIZE):
+            for c in range(Sudoku.SIZE):
+                v = g[pos]
+                pos += 1
+                if v != ' ':
+                    self.define_cell(r, c, int(v))
 
     def solved(self) -> bool:
         return all([self._cell[r][c] is not None for r in range(Sudoku.SIZE) for c in range(Sudoku.SIZE)])

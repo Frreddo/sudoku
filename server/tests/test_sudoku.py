@@ -1,6 +1,8 @@
 from unittest import TestCase
 
-from sudoku import Sudoku, ChangeType, Change
+from constants import ChangeType
+from data import grids
+from sudoku import Sudoku, Change
 
 
 class SudokuTestCase(TestCase):
@@ -36,6 +38,14 @@ class SudokuTestCase(TestCase):
             [(3, 6), (3, 7), (3, 8), (4, 6), (4, 7), (4, 8), (5, 6), (5, 7), (5, 8)],
             cells
         )
+
+    def test_load_grid(self):
+        s = Sudoku()
+        s.load_grid(327085)
+        self.assertEqual(7, s._cell[1][0])
+        summary = s.change_summary()
+        self.assertEqual(28, summary[ChangeType.DEFINE]['count'])
+        self.assertEqual(546, summary[ChangeType.DEFINE]['removed'])
 
     def test_define_cell(self):
         s = Sudoku()
@@ -109,29 +119,16 @@ class SudokuTestCase(TestCase):
             summary
         )
 
-
     def test_solve(self):
         s = Sudoku()
-        test = [
-            [0, 0, 8, 0, 0, 7, 9, 0, 5],
-            [5, 0, 0, 0, 4, 0, 0, 0, 0],
-            [4, 9, 6, 8, 5, 3, 0, 2, 0],
-            [0, 0, 0, 0, 7, 0, 4, 0, 0],
-            [7, 6, 0, 5, 0, 9, 0, 1, 3],
-            [0, 0, 9, 0, 3, 0, 0, 0, 0],
-            [0, 3, 0, 4, 2, 5, 1, 9, 6],
-            [0, 0, 0, 0, 1, 0, 0, 0, 2],
-            [6, 0, 2, 7, 0, 0, 3, 0, 0],
+        indexes = [
+            125602,
+            327085,
         ]
-        for r in range(9):
-            for c in range(9):
-                if test[r][c] != 0:
-                    s.define_cell(r, c, test[r][c])
-        s.solve()
-        self.assertTrue(s.solved())
-        self.assertEqual(81, len(s._changes))
-        summary = s.change_summary()
-        self.assertEqual(36, summary[ChangeType.DEFINE]['count'])
-        self.assertEqual(602, summary[ChangeType.DEFINE]['removed'])
-        self.assertEqual(45, summary[ChangeType.CELL_SINGLETON]['count'])
-        self.assertEqual(127, summary[ChangeType.CELL_SINGLETON]['removed'])
+        for index in indexes:
+            s = Sudoku()
+            s.load_grid(index)
+            s.solve()
+            summary = s.change_summary()
+            self.assertEqual(grids[index]['solved'], s.solved())
+            self.assertEqual(grids[index]['summary'], summary)
