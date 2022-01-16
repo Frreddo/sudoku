@@ -106,6 +106,17 @@ class SudokuTestCase(TestCase):
         self.assertEqual(8, s._cell[0][7])
         self.assertEqual([1, 2, 3, 4, 5, 6], s._options[1][8])
 
+    def test_check_square_sub_row(self):
+        s = Sudoku()
+        s.load_grid(313921)
+        self.assertEqual([2, 5, 7, 8, 9], s._options[0][8])
+        change = s._check_square_sub_row()
+        self.assertEqual(
+            Change(ChangeType.SQUARE_SUB_ROW, {'row': 0, 'value': 7, 'columns': [7, 8]}, 2),
+            change
+        )
+        self.assertEqual([2, 5, 8, 9], s._options[0][8])
+
     def test_summary(self):
         s = Sudoku()
         s.define_cell(3, 3, 3)
@@ -114,7 +125,8 @@ class SudokuTestCase(TestCase):
         self.assertEqual(
             {
                 ChangeType.DEFINE: {'count': 2, 'removed': 56},
-                ChangeType.CELL_SINGLETON: {'count': 0, 'removed': 0}
+                ChangeType.CELL_SINGLETON: {'count': 0, 'removed': 0},
+                ChangeType.SQUARE_SUB_ROW: {'count': 0, 'removed': 0},
             },
             summary
         )
@@ -124,6 +136,8 @@ class SudokuTestCase(TestCase):
         indexes = [
             125602,
             327085,
+            313921,
+            227698,
         ]
         for index in indexes:
             s = Sudoku()

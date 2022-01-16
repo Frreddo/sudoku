@@ -11,7 +11,7 @@ Change = namedtuple('Change', ['type', 'data', 'removed'])
 class Sudoku:
     SIZE = 9
     BLOCK = 3
-    START = 1
+    VALUE_RANGE = range(1, 1 + SIZE)
 
     def __init__(self):
         self._cell: List[List[Union[int, None]]] = [
@@ -19,7 +19,7 @@ class Sudoku:
         ]
         self._options: List[List[List[int]]] = [
             [
-                [x for x in range(Sudoku.START, Sudoku.START + Sudoku.SIZE)]
+                [x for x in Sudoku.VALUE_RANGE]
                 for _ in range(Sudoku.SIZE)
             ]
             for _ in range(Sudoku.SIZE)
@@ -76,8 +76,6 @@ class Sudoku:
                 s += simple_separator
         print(s)
 
-
-
     @staticmethod
     def _cells_in_square(row, column):
         (top_row, top_column) = (row - row % Sudoku.BLOCK, column - column % Sudoku.BLOCK)
@@ -108,7 +106,7 @@ class Sudoku:
             raise ValueError(f'Column out of range')
         if self._cell[row][column] is not None:
             raise ValueError(f'This cell already has a value')
-        if value not in range(Sudoku.START, Sudoku.START + Sudoku.SIZE):
+        if value not in Sudoku.VALUE_RANGE:
             print(value)
             raise ValueError(f'Value out of range')
         if value not in self._options[row][column]:
@@ -163,6 +161,49 @@ class Sudoku:
                     return change
         return None
 
+    def _find_value_in_square(self, square_row, square_column, value):
+        for r in range(square_row, square_row + Sudoku.BLOCK):
+            for c in range(square_column, square_column + Sudoku.BLOCK):
+                if self._cell[r][c] == value:
+                    return r, c
+        return None
+
+    def _check_square_sub_row(self):
+        for block_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+            for block_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+                for value in Sudoku.VALUE_RANGE:
+                    # Check that no cell in the block has this value
+                    if self._find_value_in_square(block_row, block_column, value) is None:
+                        # Check if value is present in one sub-row only
+                        presence = []
+                        for i in range(Sudoku.BLOCK):
+                            if any(
+                                [value in self._options[block_row + i][col]
+                                 for col in range(block_column, block_column + Sudoku.BLOCK)]
+                            ):
+                                presence.append(i)
+                        if len(presence) == 1:
+                            row = block_row + presence[0]
+                            # Check that it removes options in other blocks on same row
+                            removables = []
+                            for column in range(Sudoku.SIZE):
+                                if (column // Sudoku.BLOCK) != (block_column // Sudoku.BLOCK):
+                                    if value in self._options[row][column]:
+                                        removables.append(column)
+                            if len(removables) > 0:
+                                # If some options can be removed, perform change
+                                for column in removables:
+                                    self._options[row][column].remove(value)
+                                change = Change(
+                                    ChangeType.SQUARE_SUB_ROW,
+                                    {'row': row, 'value': value, 'columns': removables},
+                                    len(removables)
+                                )
+                                self._changes.append(change)
+                                print(f'row {row} value {value} removed {removables}')
+                                return change
+        return None
+
     def change_summary(self):
         summary = {t: {'count': 0, 'removed': 0} for t in ChangeType}
         for c in self._changes:
@@ -172,7 +213,11 @@ class Sudoku:
 
     def solve(self):
         while True:
-            if self._check_cell_singleton() is None:
+            if self._check_cell_singleton() is not None:
+                continue
+            elif self._check_square_sub_row() is not None:
+                continue
+            else:
                 break
 
 
