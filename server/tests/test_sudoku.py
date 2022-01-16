@@ -117,6 +117,17 @@ class SudokuTestCase(TestCase):
         )
         self.assertEqual([2, 5, 8, 9], s._options[0][8])
 
+    def test_check_square_sub_line(self):
+        s = Sudoku()
+        s.load_grid(313921)
+        self.assertEqual([2, 3, 7, 9], s._options[3][4])
+        change = s._check_square_sub_column()
+        self.assertEqual(
+            Change(ChangeType.SQUARE_SUB_COLUMN, {'column': 4, 'value': 7, 'rows': [3, 5]}, 2),
+            change
+        )
+        self.assertEqual([2, 3, 9], s._options[3][4])
+
     def test_summary(self):
         s = Sudoku()
         s.define_cell(3, 3, 3)
@@ -127,6 +138,7 @@ class SudokuTestCase(TestCase):
                 ChangeType.DEFINE: {'count': 2, 'removed': 56},
                 ChangeType.CELL_SINGLETON: {'count': 0, 'removed': 0},
                 ChangeType.SQUARE_SUB_ROW: {'count': 0, 'removed': 0},
+                ChangeType.SQUARE_SUB_COLUMN: {'count': 0, 'removed': 0},
             },
             summary
         )

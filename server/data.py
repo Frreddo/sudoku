@@ -31,6 +31,8 @@ grids = {
                 {'count': 7, 'removed': 30},
             ChangeType.SQUARE_SUB_ROW:
                 {'count': 4, 'removed': 6},
+            ChangeType.SQUARE_SUB_COLUMN:
+                {'count': 1, 'removed': 1},
         }
     },
     125602: {
@@ -52,6 +54,8 @@ grids = {
                 {'count': 45, 'removed': 127},
             ChangeType.SQUARE_SUB_ROW:
                 {'count': 0, 'removed': 0},
+            ChangeType.SQUARE_SUB_COLUMN:
+                {'count': 0, 'removed': 0},
         }
     },
     313921: {
@@ -72,7 +76,9 @@ grids = {
             ChangeType.CELL_SINGLETON:
                 {'count': 6, 'removed': 45},
             ChangeType.SQUARE_SUB_ROW:
-                {'count': 1, 'removed': 2},
+                {'count': 4, 'removed': 9},
+            ChangeType.SQUARE_SUB_COLUMN:
+                {'count': 6, 'removed': 14},
         }
     },
 
@@ -94,6 +100,8 @@ grids = {
             ChangeType.CELL_SINGLETON:
                 {'count': 52, 'removed': 163},
             ChangeType.SQUARE_SUB_ROW:
+                {'count': 0, 'removed': 0},
+            ChangeType.SQUARE_SUB_COLUMN:
                 {'count': 0, 'removed': 0},
         }
     },

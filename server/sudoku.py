@@ -200,7 +200,41 @@ class Sudoku:
                                     len(removables)
                                 )
                                 self._changes.append(change)
-                                print(f'row {row} value {value} removed {removables}')
+                                return change
+        return None
+
+    def _check_square_sub_column(self):
+        for block_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+            for block_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+                for value in Sudoku.VALUE_RANGE:
+                    # Check that no cell in the block has this value
+                    if self._find_value_in_square(block_row, block_column, value) is None:
+                        # Check if value is present in one sub-column only
+                        presence = []
+                        for i in range(Sudoku.BLOCK):
+                            if any(
+                                [value in self._options[row][block_column + i]
+                                 for row in range(block_row, block_row + Sudoku.BLOCK)]
+                            ):
+                                presence.append(i)
+                        if len(presence) == 1:
+                            column = block_column + presence[0]
+                            # Check that it removes options in other blocks on same column
+                            removables = []
+                            for row in range(Sudoku.SIZE):
+                                if (row // Sudoku.BLOCK) != (block_row // Sudoku.BLOCK):
+                                    if value in self._options[row][column]:
+                                        removables.append(row)
+                            if len(removables) > 0:
+                                # If some options can be removed, perform change
+                                for row in removables:
+                                    self._options[row][column].remove(value)
+                                change = Change(
+                                    ChangeType.SQUARE_SUB_COLUMN,
+                                    {'column': column, 'value': value, 'rows': removables},
+                                    len(removables)
+                                )
+                                self._changes.append(change)
                                 return change
         return None
 
@@ -216,6 +250,8 @@ class Sudoku:
             if self._check_cell_singleton() is not None:
                 continue
             elif self._check_square_sub_row() is not None:
+                continue
+            elif self._check_square_sub_column() is not None:
                 continue
             else:
                 break
