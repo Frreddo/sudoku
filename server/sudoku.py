@@ -3,6 +3,7 @@ from typing import List, Union
 
 from constants import ChangeType
 from data import grids
+from utils import get_sub_set, MIN_MEMBERS
 
 
 Change = namedtuple('Change', ['type', 'data', 'removed'])
@@ -174,7 +175,7 @@ class Sudoku:
                 for value in Sudoku.VALUE_RANGE:
                     # Check that no cell in the block has this value
                     if self._find_value_in_square(block_row, block_column, value) is None:
-                        # Check if value is present in one sub-row only
+                        # Check if value is present in options in one sub-row only
                         presence = []
                         for i in range(Sudoku.BLOCK):
                             if any(
@@ -184,14 +185,14 @@ class Sudoku:
                                 presence.append(i)
                         if len(presence) == 1:
                             row = block_row + presence[0]
-                            # Check that it removes options in other blocks on same row
+                            # Check if value is contained in options in other blocks on same row
                             removables = []
                             for column in range(Sudoku.SIZE):
                                 if (column // Sudoku.BLOCK) != (block_column // Sudoku.BLOCK):
                                     if value in self._options[row][column]:
                                         removables.append(column)
                             if len(removables) > 0:
-                                # If some options can be removed, perform change
+                                # Remove value from these options
                                 for column in removables:
                                     self._options[row][column].remove(value)
                                 change = Change(
@@ -209,7 +210,7 @@ class Sudoku:
                 for value in Sudoku.VALUE_RANGE:
                     # Check that no cell in the block has this value
                     if self._find_value_in_square(block_row, block_column, value) is None:
-                        # Check if value is present in one sub-column only
+                        # Check if value is present in options in one sub-column only
                         presence = []
                         for i in range(Sudoku.BLOCK):
                             if any(
@@ -219,14 +220,14 @@ class Sudoku:
                                 presence.append(i)
                         if len(presence) == 1:
                             column = block_column + presence[0]
-                            # Check that it removes options in other blocks on same column
+                            # Check if value is contained in options in other blocks on same column
                             removables = []
                             for row in range(Sudoku.SIZE):
                                 if (row // Sudoku.BLOCK) != (block_row // Sudoku.BLOCK):
                                     if value in self._options[row][column]:
                                         removables.append(row)
                             if len(removables) > 0:
-                                # If some options can be removed, perform change
+                                # Remove value from these options
                                 for row in removables:
                                     self._options[row][column].remove(value)
                                 change = Change(
@@ -236,6 +237,35 @@ class Sudoku:
                                 )
                                 self._changes.append(change)
                                 return change
+        return None
+
+    def _check_row_sub_set(self):
+        for row in range(Sudoku.SIZE):
+            options = []
+            for column in range(Sudoku.SIZE):
+                if self._cell[row][column] is None:
+                    options.append(self._options[row][column])
+            if len(options) >= MIN_MEMBERS:
+                result = get_sub_set(options)
+                if result is not None:
+                    options_sub_set, members_columns = result
+                    removed = []
+                    for column in range(Sudoku.SIZE):
+                        if column not in members_columns:
+                            for value in options_sub_set:
+                                try:
+                                    self._options[row][column].remove(value)
+                                    removed.append((column, value))
+                                except ValueError:
+                                    pass
+                    if len(removed) > 0:
+                        change = Change(
+                            ChangeType.ROW_SUB_SET,
+                            {'row': row, 'sub_set': options_sub_set, 'removed': removed},
+                            len(removed)
+                        )
+                        self._changes.append(change)
+                        return change
         return None
 
     def change_summary(self):
@@ -252,6 +282,8 @@ class Sudoku:
             elif self._check_square_sub_row() is not None:
                 continue
             elif self._check_square_sub_column() is not None:
+                continue
+            elif self._check_row_sub_set() is not None:
                 continue
             else:
                 break

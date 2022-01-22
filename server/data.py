@@ -23,16 +23,18 @@ grids = {
                 " 6 5 8  1"
                 "  5 2 7  ",
         'difficulty': Difficulty.DIFFICILE,
-        'solved': False,
+        'solved': True,
         'summary': {
             ChangeType.DEFINE:
                 {'count': 28, 'removed': 546},
             ChangeType.CELL_SINGLETON:
-                {'count': 7, 'removed': 30},
+                {'count': 53, 'removed': 168},
             ChangeType.SQUARE_SUB_ROW:
-                {'count': 4, 'removed': 6},
+                {'count': 5, 'removed': 8},
             ChangeType.SQUARE_SUB_COLUMN:
-                {'count': 1, 'removed': 1},
+                {'count': 2, 'removed': 3},
+            ChangeType.ROW_SUB_SET:
+                {'count': 1, 'removed': 4},
         }
     },
     125602: {
@@ -56,6 +58,8 @@ grids = {
                 {'count': 0, 'removed': 0},
             ChangeType.SQUARE_SUB_COLUMN:
                 {'count': 0, 'removed': 0},
+            ChangeType.ROW_SUB_SET:
+                {'count': 0, 'removed': 0},
         }
     },
     313921: {
@@ -74,11 +78,13 @@ grids = {
             ChangeType.DEFINE:
                 {'count': 25, 'removed': 514},
             ChangeType.CELL_SINGLETON:
-                {'count': 6, 'removed': 45},
+                {'count': 48, 'removed': 163},
             ChangeType.SQUARE_SUB_ROW:
-                {'count': 4, 'removed': 9},
+                {'count': 8, 'removed': 16},
             ChangeType.SQUARE_SUB_COLUMN:
-                {'count': 6, 'removed': 14},
+                {'count': 7, 'removed': 17},
+            ChangeType.ROW_SUB_SET:
+                {'count': 3, 'removed': 17},
         }
     },
 
@@ -102,6 +108,8 @@ grids = {
             ChangeType.SQUARE_SUB_ROW:
                 {'count': 0, 'removed': 0},
             ChangeType.SQUARE_SUB_COLUMN:
+                {'count': 0, 'removed': 0},
+            ChangeType.ROW_SUB_SET:
                 {'count': 0, 'removed': 0},
         }
     },

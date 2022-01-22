@@ -128,6 +128,27 @@ class SudokuTestCase(TestCase):
         )
         self.assertEqual([2, 3, 9], s._options[3][4])
 
+    def test_check_row_sub_set(self):
+        s = Sudoku()
+        options_in_row = [
+            [1, 2, 3, 4, 8, 9],
+            [4, 5, 6, 7],
+            [1, 2, 3, 7, 8, 9],
+            [1, 2, 3, 8, 9],
+            [5, 6, 7],
+            [4, 7],
+            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            [4, 6, 7],
+            [1, 2, 3, 8, 9],
+        ]
+        for i in range(Sudoku.SIZE):
+            s._options[2][i] = options_in_row[i]
+        change = s._check_row_sub_set()
+        self.assertEqual(ChangeType.ROW_SUB_SET, change.type)
+        self.assertEqual(6, change.removed)
+        self.assertEqual({'row': 2, 'sub_set': {4, 5, 6, 7},
+                          'removed': [(0, 4), (2, 7), (6, 4), (6, 5), (6, 6), (6, 7)]}, change.data)
+
     def test_summary(self):
         s = Sudoku()
         s.define_cell(3, 3, 3)
@@ -139,12 +160,12 @@ class SudokuTestCase(TestCase):
                 ChangeType.CELL_SINGLETON: {'count': 0, 'removed': 0},
                 ChangeType.SQUARE_SUB_ROW: {'count': 0, 'removed': 0},
                 ChangeType.SQUARE_SUB_COLUMN: {'count': 0, 'removed': 0},
+                ChangeType.ROW_SUB_SET: {'count': 0, 'removed': 0},
             },
             summary
         )
 
     def test_solve(self):
-        s = Sudoku()
         indexes = [
             125602,
             327085,

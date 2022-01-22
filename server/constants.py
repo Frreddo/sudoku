@@ -6,4 +6,4 @@ class ChangeType(Enum):
     CELL_SINGLETON = auto()
     SQUARE_SUB_ROW = auto()
     SQUARE_SUB_COLUMN = auto()
-    LINE_SUB_SET = auto()
+    ROW_SUB_SET = auto()
