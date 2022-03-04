@@ -3,7 +3,7 @@ from typing import List, Union
 
 from constants import ChangeType
 from data import grids
-from utils import get_sub_set, MIN_MEMBERS
+from utils import exclusive_sub_list, MIN_NB_OF_CONTAINERS
 
 
 Change = namedtuple('Change', ['type', 'data', 'removed'])
@@ -169,70 +169,74 @@ class Sudoku:
                     return r, c
         return None
 
-    def _check_square_sub_row(self):
-        for block_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
-            for block_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+    def _check_exclusive_row_in_square(self):
+        # Iterate on all squares
+        for square_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+            for square_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
                 for value in Sudoku.VALUE_RANGE:
-                    # Check that no cell in the block has this value
-                    if self._find_value_in_square(block_row, block_column, value) is None:
-                        # Check if value is present in options in one sub-row only
-                        presence = []
-                        for i in range(Sudoku.BLOCK):
+                    # Check that no cell in the square has this value
+                    if self._find_value_in_square(square_row, square_column, value) is None:
+                        # Check if value is present in options in one row only
+                        rows_with_value = []
+                        for row in range(square_row, square_row + Sudoku.BLOCK):
                             if any(
-                                [value in self._options[block_row + i][col]
-                                 for col in range(block_column, block_column + Sudoku.BLOCK)]
+                                [value in self._options[row][col]
+                                 for col in range(square_column, square_column + Sudoku.BLOCK)]
                             ):
-                                presence.append(i)
-                        if len(presence) == 1:
-                            row = block_row + presence[0]
-                            # Check if value is contained in options in other blocks on same row
+                                rows_with_value.append(row)
+                        if len(rows_with_value) == 1:
+                            exclusive_row = rows_with_value[0]
+                            # Check if value is contained in options in other squares on same row
                             removables = []
                             for column in range(Sudoku.SIZE):
-                                if (column // Sudoku.BLOCK) != (block_column // Sudoku.BLOCK):
-                                    if value in self._options[row][column]:
+                                if (column // Sudoku.BLOCK) != (square_column // Sudoku.BLOCK):
+                                    if value in self._options[exclusive_row][column]:
                                         removables.append(column)
                             if len(removables) > 0:
-                                # Remove value from these options
+                                # Remove value from these options and return the changes performed
                                 for column in removables:
-                                    self._options[row][column].remove(value)
+                                    self._options[exclusive_row][column].remove(value)
                                 change = Change(
-                                    ChangeType.SQUARE_SUB_ROW,
-                                    {'row': row, 'value': value, 'columns': removables},
+                                    ChangeType.EXCLUSIVE_ROW_IN_SQUARE,
+                                    {'square': (square_row, square_column), 'value': value,
+                                     'exclusive row': exclusive_row, 'removed': removables},
                                     len(removables)
                                 )
                                 self._changes.append(change)
                                 return change
         return None
 
-    def _check_square_sub_column(self):
-        for block_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
-            for block_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+    def _check_exclusive_column_in_square(self):
+        # Iterate on all squares
+        for square_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+            for square_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
                 for value in Sudoku.VALUE_RANGE:
-                    # Check that no cell in the block has this value
-                    if self._find_value_in_square(block_row, block_column, value) is None:
-                        # Check if value is present in options in one sub-column only
-                        presence = []
-                        for i in range(Sudoku.BLOCK):
+                    # Check that no cell in the square has this value
+                    if self._find_value_in_square(square_row, square_column, value) is None:
+                        # Check if value is present in options in one column only
+                        columns_with_value = []
+                        for column in range(square_column, square_column + Sudoku.BLOCK):
                             if any(
-                                [value in self._options[row][block_column + i]
-                                 for row in range(block_row, block_row + Sudoku.BLOCK)]
+                                [value in self._options[row][column]
+                                 for row in range(square_row, square_row + Sudoku.BLOCK)]
                             ):
-                                presence.append(i)
-                        if len(presence) == 1:
-                            column = block_column + presence[0]
-                            # Check if value is contained in options in other blocks on same column
+                                columns_with_value.append(column)
+                        if len(columns_with_value) == 1:
+                            exclusive_column = columns_with_value[0]
+                            # Check if value is contained in options in other squares on same column
                             removables = []
                             for row in range(Sudoku.SIZE):
-                                if (row // Sudoku.BLOCK) != (block_row // Sudoku.BLOCK):
-                                    if value in self._options[row][column]:
+                                if (row // Sudoku.BLOCK) != (square_row // Sudoku.BLOCK):
+                                    if value in self._options[row][exclusive_column]:
                                         removables.append(row)
                             if len(removables) > 0:
-                                # Remove value from these options
+                                # Remove value from these options and return the changes performed
                                 for row in removables:
-                                    self._options[row][column].remove(value)
+                                    self._options[row][exclusive_column].remove(value)
                                 change = Change(
-                                    ChangeType.SQUARE_SUB_COLUMN,
-                                    {'column': column, 'value': value, 'rows': removables},
+                                    ChangeType.EXCLUSIVE_COLUMN_IN_SQUARE,
+                                    {'square': (square_row, square_column), 'value': value,
+                                     'exclusive column': exclusive_column, 'removed': removables},
                                     len(removables)
                                 )
                                 self._changes.append(change)
@@ -244,11 +248,12 @@ class Sudoku:
             options = []
             for column in range(Sudoku.SIZE):
                 if self._cell[row][column] is None:
-                    options.append(self._options[row][column])
-            if len(options) >= MIN_MEMBERS:
-                result = get_sub_set(options)
+                    options.append((column, self._options[row][column]))
+            if len(options) >= MIN_NB_OF_CONTAINERS:
+                result = exclusive_sub_list([o for _, o in options])
                 if result is not None:
-                    options_sub_set, members_columns = result
+                    options_sub_set, members_indexes = result
+                    members_columns = [options[index][0] for index in members_indexes]
                     removed = []
                     for column in range(Sudoku.SIZE):
                         if column not in members_columns:
@@ -268,6 +273,67 @@ class Sudoku:
                         return change
         return None
 
+    def _check_column_sub_set(self):
+        for column in range(Sudoku.SIZE):
+            options = []
+            for row in range(Sudoku.SIZE):
+                if self._cell[row][column] is None:
+                    options.append((row, self._options[row][column]))
+            if len(options) >= MIN_NB_OF_CONTAINERS:
+                result = exclusive_sub_list([o for _, o in options])
+                if result is not None:
+                    options_sub_set, members_indexes = result
+                    members_rows = [options[index][0] for index in members_indexes]
+                    removed = []
+                    for row in range(Sudoku.SIZE):
+                        if row not in members_rows:
+                            for value in options_sub_set:
+                                try:
+                                    self._options[row][column].remove(value)
+                                    removed.append((row, value))
+                                except ValueError:
+                                    pass
+                    if len(removed) > 0:
+                        change = Change(
+                            ChangeType.COLUMN_SUB_SET,
+                            {'column': column, 'sub_set': options_sub_set, 'removed': removed},
+                            len(removed)
+                        )
+                        self._changes.append(change)
+                        return change
+        return None
+
+    def _check_square_sub_set(self):
+        for block_row in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+            for block_column in range(0, Sudoku.SIZE, Sudoku.BLOCK):
+                options = []
+                for row, column in self._cells_in_square(block_row, block_column):
+                    if self._cell[row][column] is None:
+                        options.append(((row, column), self._options[row][column]))
+                if len(options) >= MIN_NB_OF_CONTAINERS:
+                    result = exclusive_sub_list([o for _, o in options])
+                    if result is not None:
+                        options_sub_set, members_indexes = result
+                        sub_set_cells = [options[index][0] for index in members_indexes]
+                        removed = []
+                        for row, column in self._cells_in_square(block_row, block_column):
+                            if (row, column) not in sub_set_cells:
+                                for value in options_sub_set:
+                                    try:
+                                        self._options[row][column].remove(value)
+                                        removed.append((row, column, value))
+                                    except ValueError:
+                                        pass
+                        if len(removed) > 0:
+                            change = Change(
+                                ChangeType.SQUARE_SUB_SET,
+                                {'square': (block_row, block_column), 'sub_set': options_sub_set, 'removed': removed},
+                                len(removed)
+                            )
+                            self._changes.append(change)
+                            return change
+        return None
+
     def change_summary(self):
         summary = {t: {'count': 0, 'removed': 0} for t in ChangeType}
         for c in self._changes:
@@ -279,11 +345,15 @@ class Sudoku:
         while True:
             if self._check_cell_singleton() is not None:
                 continue
-            elif self._check_square_sub_row() is not None:
+            elif self._check_exclusive_row_in_square() is not None:
                 continue
-            elif self._check_square_sub_column() is not None:
+            elif self._check_exclusive_column_in_square() is not None:
                 continue
             elif self._check_row_sub_set() is not None:
+                continue
+            elif self._check_column_sub_set() is not None:
+                continue
+            elif self._check_square_sub_set() is not None:
                 continue
             else:
                 break

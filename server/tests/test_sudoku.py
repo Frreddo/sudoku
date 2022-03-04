@@ -106,40 +106,46 @@ class SudokuTestCase(TestCase):
         self.assertEqual(8, s._cell[0][7])
         self.assertEqual([1, 2, 3, 4, 5, 6], s._options[1][8])
 
-    def test_check_square_sub_row(self):
+    def test_check_exclusive_row_in_square(self):
         s = Sudoku()
-        s.load_grid(313921)
-        self.assertEqual([2, 5, 7, 8, 9], s._options[0][8])
-        change = s._check_square_sub_row()
+        s.define_cell(1, 1, 1)
+        s.define_cell(2, 3, 2)
+        s.define_cell(2, 4, 3)
+        s.define_cell(2, 5, 4)
+        change = s._check_exclusive_row_in_square()
+        self.assertEqual(ChangeType.EXCLUSIVE_ROW_IN_SQUARE, change.type)
+        self.assertEqual(3, change.removed)
         self.assertEqual(
-            Change(ChangeType.SQUARE_SUB_ROW, {'row': 0, 'value': 7, 'columns': [7, 8]}, 2),
-            change
+            {'square': (0, 3), 'exclusive row': 0, 'value': 1, 'removed': [6, 7, 8]},
+            change.data
         )
-        self.assertEqual([2, 5, 8, 9], s._options[0][8])
 
-    def test_check_square_sub_line(self):
+    def test_check_exclusive_column_in_square(self):
         s = Sudoku()
-        s.load_grid(313921)
-        self.assertEqual([2, 3, 7, 9], s._options[3][4])
-        change = s._check_square_sub_column()
+        s.define_cell(3, 4, 4)
+        s.define_cell(4, 4, 5)
+        s.define_cell(5, 4, 6)
+        s.define_cell(6, 5, 7)
+        change = s._check_exclusive_column_in_square()
+        self.assertEqual(ChangeType.EXCLUSIVE_COLUMN_IN_SQUARE, change.type)
+        self.assertEqual(3, change.removed)
         self.assertEqual(
-            Change(ChangeType.SQUARE_SUB_COLUMN, {'column': 4, 'value': 7, 'rows': [3, 5]}, 2),
-            change
+            {'square': (3, 3), 'exclusive column': 3, 'value': 7, 'removed': [0, 1, 2]},
+            change.data
         )
-        self.assertEqual([2, 3, 9], s._options[3][4])
 
     def test_check_row_sub_set(self):
         s = Sudoku()
         options_in_row = [
-            [1, 2, 3, 4, 8, 9],
+            [1, 2, 4, 8, 9],
             [4, 5, 6, 7],
-            [1, 2, 3, 7, 8, 9],
-            [1, 2, 3, 8, 9],
+            [1, 2, 7, 8, 9],
+            [3],
             [5, 6, 7],
             [4, 7],
-            [1, 2, 3, 4, 5, 6, 7, 8, 9],
+            [1, 2, 4, 5, 6, 7, 8, 9],
             [4, 6, 7],
-            [1, 2, 3, 8, 9],
+            [1, 2, 8, 9],
         ]
         for i in range(Sudoku.SIZE):
             s._options[2][i] = options_in_row[i]
@@ -148,6 +154,50 @@ class SudokuTestCase(TestCase):
         self.assertEqual(6, change.removed)
         self.assertEqual({'row': 2, 'sub_set': {4, 5, 6, 7},
                           'removed': [(0, 4), (2, 7), (6, 4), (6, 5), (6, 6), (6, 7)]}, change.data)
+
+    def test_check_column_sub_set(self):
+        s = Sudoku()
+        options_in_column = [
+            [1, 2, 3, 4, 8, 9],
+            [4, 5, 6, 7],
+            [],
+            [1, 2, 3, 8, 9],
+            [5, 6, 7],
+            [4, 7],
+            [1, 2, 3, 4, 6, 7, 8, 9],
+            [4, 6, 7],
+            [1, 2, 3, 8, 9],
+        ]
+        s.define_cell(2, 6, 8)
+        for i in range(Sudoku.SIZE):
+            s._options[i][6] = options_in_column[i]
+        change = s._check_column_sub_set()
+        self.assertEqual(ChangeType.COLUMN_SUB_SET, change.type)
+        self.assertEqual(4, change.removed)
+        self.assertEqual({'column': 6, 'sub_set': {4, 5, 6, 7},
+                          'removed': [(0, 4), (6, 4), (6, 6), (6, 7)]}, change.data)
+
+    def test_check_square_sub_set(self):
+        s = Sudoku()
+        options_in_square = [
+            [9],
+            [4, 5, 6, 7],
+            [1, 2, 3, 7, 8],
+            [1, 2, 3, 8],
+            [5, 6, 7],
+            [4, 7],
+            [1, 2, 3, 4, 6, 7, 8],
+            [4, 6, 7],
+            [1, 2, 3, 8],
+        ]
+        s.define_cell(3, 6, 9)
+        for index, (r, c) in enumerate(s._cells_in_square(3, 6)):
+            s._options[r][c] = options_in_square[index]
+        change = s._check_square_sub_set()
+        self.assertEqual(ChangeType.SQUARE_SUB_SET, change.type)
+        self.assertEqual(4, change.removed)
+        self.assertEqual({'square': (3, 6), 'sub_set': {4, 5, 6, 7},
+                          'removed': [(3, 8, 7), (5, 6, 4), (5, 6, 6), (5, 6, 7)]}, change.data)
 
     def test_summary(self):
         s = Sudoku()
@@ -158,19 +208,23 @@ class SudokuTestCase(TestCase):
             {
                 ChangeType.DEFINE: {'count': 2, 'removed': 56},
                 ChangeType.CELL_SINGLETON: {'count': 0, 'removed': 0},
-                ChangeType.SQUARE_SUB_ROW: {'count': 0, 'removed': 0},
-                ChangeType.SQUARE_SUB_COLUMN: {'count': 0, 'removed': 0},
+                ChangeType.EXCLUSIVE_ROW_IN_SQUARE: {'count': 0, 'removed': 0},
+                ChangeType.EXCLUSIVE_COLUMN_IN_SQUARE: {'count': 0, 'removed': 0},
                 ChangeType.ROW_SUB_SET: {'count': 0, 'removed': 0},
+                ChangeType.COLUMN_SUB_SET: {'count': 0, 'removed': 0},
+                ChangeType.SQUARE_SUB_SET: {'count': 0, 'removed': 0},
             },
             summary
         )
 
     def test_solve(self):
         indexes = [
+            313921,
             125602,
             327085,
-            313921,
             227698,
+            41430,
+            513089,
         ]
         for index in indexes:
             s = Sudoku()
